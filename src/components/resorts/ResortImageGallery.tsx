@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from 'next/image';
@@ -52,7 +53,7 @@ export default function ResortImageGallery({ images, resortName, virtualTourUrl 
               className="object-cover transition-transform duration-500 ease-in-out group-hover:scale-105"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               priority={currentIndex === 0} // Prioritize first image
-              data-ai-hint="resort interior exterior"
+              data-ai-hint="resort view"
             />
           </AspectRatio>
           {images.length > 1 && (
