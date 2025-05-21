@@ -1,7 +1,8 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useActionState } from 'react'; // Changed from react-dom and renamed
+import { useActionState, useEffect, useTransition } from 'react';
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Wand2, Loader2 } from "lucide-react";
@@ -34,11 +35,9 @@ type RecommendationFormProps = {
   setLoading: (loading: boolean) => void;
 };
 
-// Removed SubmitButton as it was unused after refactoring to use react-hook-form's isSubmitting
-
 export default function RecommendationForm({ onRecommendations, setLoading }: RecommendationFormProps) {
-  // useActionState is the correct hook for React 19+
-  const [state, formAction] = useActionState<ActionResponse | null, FormData>(handleGenerateRecommendations, null);
+  const [actionResponse, dispatchAction] = useActionState<ActionResponse | null, FormData>(handleGenerateRecommendations, null);
+  const [isPending, startTransition] = useTransition();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -49,34 +48,45 @@ export default function RecommendationForm({ onRecommendations, setLoading }: Re
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    setLoading(true);
+  // Effect to handle the result from the server action
+  useEffect(() => {
+    if (actionResponse === null) { // Initial state, do nothing
+      return;
+    }
+
+    // Only process if the transition is complete
+    if (!isPending) {
+      if (actionResponse.success && actionResponse.data) {
+        onRecommendations(actionResponse.data.recommendations);
+      } else if (actionResponse.error && !actionResponse.fieldErrors) {
+        form.setError("root.serverError", { type: "custom", message: actionResponse.error });
+        onRecommendations(null);
+      }
+
+      if (actionResponse.fieldErrors) {
+        Object.entries(actionResponse.fieldErrors).forEach(([field, errors]) => {
+          form.setError(field as keyof z.infer<typeof formSchema>, { message: errors.join(', ') });
+        });
+      }
+      setLoading(false); // Signal parent that loading is complete
+    }
+  }, [actionResponse, isPending, form, onRecommendations, setLoading]);
+
+
+  function onSubmit(values: z.infer<typeof formSchema>) {
+    setLoading(true); // Signal parent that loading has started
     onRecommendations(null); // Clear previous recommendations
+    form.clearErrors(); // Clear previous RHF errors
+
     const formData = new FormData();
     formData.append('occasion', values.occasion);
     formData.append('preferences', values.preferences);
     formData.append('budget', values.budget);
     
-    // Directly call the server action, useActionState will handle its response for 'state'
-    // formAction is now the function to call
-    const result = await formAction(formData); 
-    
-    if (result.success && result.data) {
-      onRecommendations(result.data.recommendations);
-    } else if (result.error && !result.fieldErrors) { // Only show general error if no field errors
-      // console.error(result.error); // Optionally log
-      form.setError("root.serverError", { type: "custom", message: result.error });
-      onRecommendations(null);
-    }
-
-    if (result.fieldErrors) {
-        Object.entries(result.fieldErrors).forEach(([field, errors]) => {
-            form.setError(field as keyof z.infer<typeof formSchema>, { message: errors.join(', ') });
-        });
-    }
-    setLoading(false);
+    startTransition(() => {
+      dispatchAction(formData);
+    });
   };
-
 
   return (
     <Card className="w-full max-w-lg mx-auto shadow-xl">
@@ -156,8 +166,8 @@ export default function RecommendationForm({ onRecommendations, setLoading }: Re
             {form.formState.errors.root?.serverError && (
               <FormMessage>{form.formState.errors.root.serverError.message}</FormMessage>
             )}
-            <Button type="submit" disabled={form.formState.isSubmitting} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-              {form.formState.isSubmitting ? (
+            <Button type="submit" disabled={isPending} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+              {isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Generating...
