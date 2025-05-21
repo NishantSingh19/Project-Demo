@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -6,10 +7,17 @@ import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/theme-provider';
+import { useEffect, useState } from 'react';
 
 export default function Header() {
   const pathname = usePathname();
   const { setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // Ensure component is mounted on the client before using resolvedTheme for icon display
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const navLinks = [
     { href: '/', label: 'Home', icon: Home },
@@ -47,7 +55,7 @@ export default function Header() {
             className="hover:bg-primary-foreground/10"
             aria-label="Toggle theme"
           >
-            {resolvedTheme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            {mounted && resolvedTheme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
           </Button>
         </nav>
       </div>
