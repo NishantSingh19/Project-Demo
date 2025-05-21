@@ -31,7 +31,7 @@ const AIRecommendationSchema = z.object({
 });
 
 const GenerateResortRecommendationsOutputSchema = z.object({
-  recommendations: z.array(AIRecommendationSchema).describe('A list of personalized resort recommendations with detailed information.'),
+  recommendations: z.array(AIRecommendationSchema).describe('A list of at least 4 personalized resort recommendations with detailed information.'),
 });
 export type GenerateResortRecommendationsOutput = z.infer<typeof GenerateResortRecommendationsOutputSchema>;
 
@@ -46,7 +46,7 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateResortRecommendationsOutputSchema},
   prompt: `You are an expert travel agent specializing in resort recommendations.
 
-  Based on the user's occasion, preferences, and budget, provide a list of 2-3 personalized resort recommendations.
+  Based on the user's occasion, preferences, and budget, provide a list of at least 4, ideally 4-5, personalized resort recommendations.
 
   User Input:
   Occasion: {{{occasion}}}
@@ -81,6 +81,10 @@ const generateResortRecommendationsFlow = ai.defineFlow(
       console.warn("AI did not return recommendations or output was malformed.");
       return { recommendations: [] };
     }
+    // Ensure at least a minimum number of recommendations if possible, or handle if AI still returns less.
+    // For this request, we are relying on the prompt to guide the AI to produce at least 4.
+    // Further client-side logic could be added if strict enforcement is needed and AI fails to comply.
     return output;
   }
 );
+
