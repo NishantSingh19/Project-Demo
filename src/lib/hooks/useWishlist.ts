@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -31,11 +32,13 @@ export function useWishlist() {
         localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(wishlistItems));
       } catch (error) {
         console.error("Failed to save wishlist to localStorage", error);
-        toast({
-          title: "Storage Error",
-          description: "Could not save your wishlist. Your browser's local storage might be full or disabled.",
-          variant: "destructive",
-        });
+        setTimeout(() => {
+          toast({
+            title: "Storage Error",
+            description: "Could not save your wishlist. Your browser's local storage might be full or disabled.",
+            variant: "destructive",
+          });
+        }, 0);
       }
     }
   }, [wishlistItems, isLoaded, toast]);
@@ -43,16 +46,20 @@ export function useWishlist() {
   const addToWishlist = useCallback((resort: Resort) => {
     setWishlistItems((prevItems) => {
       if (prevItems.find(item => item.id === resort.id)) {
-        toast({
-          title: "Already in Wishlist",
-          description: `${resort.name} is already in your wishlist.`,
-        });
+        setTimeout(() => {
+          toast({
+            title: "Already in Wishlist",
+            description: `${resort.name} is already in your wishlist.`,
+          });
+        }, 0);
         return prevItems;
       }
-      toast({
-        title: "Added to Wishlist!",
-        description: `${resort.name} has been added to your wishlist.`,
-      });
+      setTimeout(() => {
+        toast({
+          title: "Added to Wishlist!",
+          description: `${resort.name} has been added to your wishlist.`,
+        });
+      }, 0);
       return [...prevItems, resort];
     });
   }, [toast]);
@@ -61,10 +68,12 @@ export function useWishlist() {
     setWishlistItems((prevItems) => {
       const resortToRemove = prevItems.find(item => item.id === resortId);
       if (resortToRemove) {
-        toast({
-          title: "Removed from Wishlist",
-          description: `${resortToRemove.name} has been removed from your wishlist.`,
-        });
+        setTimeout(() => {
+          toast({
+            title: "Removed from Wishlist",
+            description: `${resortToRemove.name} has been removed from your wishlist.`,
+          });
+        }, 0);
       }
       return prevItems.filter(item => item.id !== resortId);
     });
