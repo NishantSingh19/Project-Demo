@@ -1,13 +1,15 @@
 "use client";
 
 import Link from 'next/link';
-import { Hotel, Heart, Home } from 'lucide-react';
+import { Hotel, Heart, Home, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useTheme } from '@/components/theme-provider';
 
 export default function Header() {
   const pathname = usePathname();
+  const { setTheme, resolvedTheme } = useTheme();
 
   const navLinks = [
     { href: '/', label: 'Home', icon: Home },
@@ -38,6 +40,15 @@ export default function Header() {
               </Link>
             </Button>
           ))}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+            className="hover:bg-primary-foreground/10"
+            aria-label="Toggle theme"
+          >
+            {resolvedTheme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+          </Button>
         </nav>
       </div>
     </header>
