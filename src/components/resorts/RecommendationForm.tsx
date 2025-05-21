@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState } from 'react'; // Changed from react-dom and renamed
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Wand2, Loader2 } from "lucide-react";
@@ -34,28 +34,11 @@ type RecommendationFormProps = {
   setLoading: (loading: boolean) => void;
 };
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-      {pending ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Generating...
-        </>
-      ) : (
-        <>
-          <Wand2 className="mr-2 h-4 w-4" />
-          Get Recommendations
-        </>
-      )}
-    </Button>
-  );
-}
-
+// Removed SubmitButton as it was unused after refactoring to use react-hook-form's isSubmitting
 
 export default function RecommendationForm({ onRecommendations, setLoading }: RecommendationFormProps) {
-  const [state, formAction] = useFormState<ActionResponse | null, FormData>(handleGenerateRecommendations, null);
+  // useActionState is the correct hook for React 19+
+  const [state, formAction] = useActionState<ActionResponse | null, FormData>(handleGenerateRecommendations, null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -74,17 +57,18 @@ export default function RecommendationForm({ onRecommendations, setLoading }: Re
     formData.append('preferences', values.preferences);
     formData.append('budget', values.budget);
     
-    const result = await handleGenerateRecommendations(null, formData); // Call server action directly
+    // Directly call the server action, useActionState will handle its response for 'state'
+    // formAction is now the function to call
+    const result = await formAction(formData); 
     
     if (result.success && result.data) {
       onRecommendations(result.data.recommendations);
-    } else if (result.error) {
-      // Handle general error (e.g., display a toast)
-      console.error(result.error);
+    } else if (result.error && !result.fieldErrors) { // Only show general error if no field errors
+      // console.error(result.error); // Optionally log
+      form.setError("root.serverError", { type: "custom", message: result.error });
       onRecommendations(null);
     }
-    // Field errors are handled by react-hook-form via useFormState if we used it like that
-    // For now, we check result directly
+
     if (result.fieldErrors) {
         Object.entries(result.fieldErrors).forEach(([field, errors]) => {
             form.setError(field as keyof z.infer<typeof formSchema>, { message: errors.join(', ') });
@@ -169,6 +153,9 @@ export default function RecommendationForm({ onRecommendations, setLoading }: Re
                 </FormItem>
               )}
             />
+            {form.formState.errors.root?.serverError && (
+              <FormMessage>{form.formState.errors.root.serverError.message}</FormMessage>
+            )}
             <Button type="submit" disabled={form.formState.isSubmitting} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
               {form.formState.isSubmitting ? (
                 <>
