@@ -13,6 +13,7 @@ import ResortImageGallery from '@/components/resorts/ResortImageGallery';
 import { MapPin, Star, CheckCircle, DollarSign, Tag, CalendarCheck, Heart, Info } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 
 export default function ResortDetailPage() {
   const params = useParams();
