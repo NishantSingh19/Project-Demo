@@ -6,9 +6,9 @@ import { generateResortImage, type GenerateResortImageInput, type GenerateResort
 import { z } from 'zod';
 
 const RecommendationRequestSchema = z.object({
-  occasion: z.string().min(3, "Occasion must be at least 3 characters long."),
+  occasion: z.string().min(1, "Occasion must be selected."), // Updated min for select
   preferences: z.string().min(3, "Preferences must be at least 3 characters long."),
-  budget: z.string().min(3, "Budget must be specified."),
+  budget: z.string().min(1, "Budget must be selected."), // Updated min for select
 });
 
 export interface ActionResponse {
@@ -45,21 +45,23 @@ export async function handleGenerateRecommendations(
     return { success: true, data: recommendations };
   } catch (error) {
     console.error("Error generating recommendations:", error);
-    return { success: false, error: "Failed to generate recommendations. Please try again later." };
+    // It's good practice to avoid sending detailed error messages like error.message to client
+    // unless they are specifically crafted for client consumption.
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    // Mask generic errors for the client.
+    // Log the detailed error on the server.
+    if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
+         return { success: false, error: "The recommendation service is currently busy. Please try again in a moment." };
+    }
+    return { success: false, error: "Failed to generate recommendations due to a server issue. Please try again later." };
   }
 }
 
 
 export async function generateResortImageAction(input: GenerateResortImageInput): Promise<GenerateResortImageOutput> {
-  try {
-    const result = await generateResortImage(input);
-    return result;
-  } catch (error) {
-    console.error("Error in generateResortImageAction:", error);
-    // Re-throw the error so the client can handle it, or return a structured error.
-    // For simplicity, re-throwing allows the client's catch block to activate.
-    // Consider returning a specific error structure if more granular client handling is needed.
-    // e.g., return { imageDataUri: '', error: 'Image generation failed' }
-    throw new Error(`Image generation failed: ${error instanceof Error ? error.message : String(error)}`);
-  }
+  // The generateResortImage flow now handles its internal errors (like API errors or rate limits)
+  // and will return an object with imageDataUri: null in case of failure.
+  // The client-side (ResortCard.tsx) is already set up to check if imageDataUri is null
+  // and display a fallback if it is. So, we just return the result from the flow.
+  return generateResortImage(input);
 }
