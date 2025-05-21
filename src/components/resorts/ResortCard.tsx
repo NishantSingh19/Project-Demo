@@ -31,20 +31,20 @@ export default function ResortCard({ resort }: ResortCardProps) {
   useEffect(() => {
     let isMounted = true;
     
-    // Only attempt to generate if the current image is a placeholder
-    if (initialImage.startsWith('https://placehold.co')) {
+    if (initialImage.startsWith('https://placehold.co') || initialImage.includes('?text=')) { // Check if it's a placeholder
       setIsGeneratingImage(true);
       setGenerationFailed(false);
 
       const suitableForText = resort.suitableFor?.length > 0 ? `good for ${resort.suitableFor.slice(0,2).join(', ')}` : 'general travel';
-      const prompt = `A vibrant, high-quality photograph of ${resort.name}, a ${resort.priceRange} resort in ${resort.location}, ${suitableForText}. Focus: ${DEFAULT_AI_HINT}.`;
+      // Use resort.defaultImageAiHint if available, otherwise fallback to DEFAULT_AI_HINT
+      const imageHint = resort.defaultImageAiHint || DEFAULT_AI_HINT;
+      const prompt = `A vibrant, high-quality photograph of ${resort.name}, a ${resort.priceRange} resort in ${resort.location}, ${suitableForText}. Focus: ${imageHint}.`;
 
       generateResortImageAction({ prompt })
         .then(response => {
           if (isMounted && response.imageDataUri) {
             setCurrentImageUrl(response.imageDataUri);
           } else if (isMounted) {
-            // Handle case where imageDataUri might be empty but no error thrown
             setGenerationFailed(true);
           }
         })
@@ -60,7 +60,6 @@ export default function ResortCard({ resort }: ResortCardProps) {
           }
         });
     } else {
-      // If initial image is not a placeholder, no need to generate
       setCurrentImageUrl(initialImage);
       setIsGeneratingImage(false);
     }
@@ -68,7 +67,8 @@ export default function ResortCard({ resort }: ResortCardProps) {
     return () => {
       isMounted = false;
     };
-  }, [resort.id, resort.name, resort.priceRange, resort.location, resort.suitableFor, initialImage]);
+  // Add resort.defaultImageAiHint to dependency array to re-trigger if it changes for some reason (e.g. AI rec updated)
+  }, [resort.id, resort.name, resort.priceRange, resort.location, resort.suitableFor, initialImage, resort.defaultImageAiHint]);
 
   const handleWishlistToggle = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -96,11 +96,13 @@ export default function ResortCard({ resort }: ResortCardProps) {
             width={400}
             height={250}
             className="w-full h-48 object-cover"
-            data-ai-hint={DEFAULT_AI_HINT}
+            // Use the resort specific hint or default for the data-ai-hint attribute for semantic HTML / accessibility
+            data-ai-hint={resort.defaultImageAiHint || DEFAULT_AI_HINT} 
             onError={() => {
-              // Fallback if the data URI itself is invalid or fails to load
-              if (!generationFailed) setGenerationFailed(true);
-              setCurrentImageUrl(`https://placehold.co/400x250.png?text=Load+Error`);
+              if (!generationFailed && isMounted) { // ensure component is still mounted
+                 setGenerationFailed(true);
+                 setCurrentImageUrl(`https://placehold.co/400x250.png?text=Load+Error`);
+              }
             }}
           />
         )}
@@ -120,7 +122,7 @@ export default function ResortCard({ resort }: ResortCardProps) {
         <CardTitle className="text-xl mb-1 text-primary">{resort.name}</CardTitle>
         <div className="flex items-center text-sm text-muted-foreground mb-2">
           <MapPin size={14} className="mr-1" /> {resort.location}
-          <Star size={14} className="ml-3 mr-1 text-yellow-500" fill="currentColor" /> {resort.rating}/5
+          {typeof resort.rating === 'number' && <><Star size={14} className="ml-3 mr-1 text-yellow-500" fill="currentColor" /> {resort.rating.toFixed(1)}/5</>}
         </div>
         <CardDescription className="text-sm mb-3 line-clamp-3">{resort.description}</CardDescription>
         <div className="flex items-center gap-2 text-sm mb-3">

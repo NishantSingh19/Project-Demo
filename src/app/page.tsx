@@ -1,23 +1,64 @@
+
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import RecommendationForm from '@/components/resorts/RecommendationForm';
 import RecommendationResults from '@/components/resorts/RecommendationResults';
 import ResortList from '@/components/resorts/ResortList';
 import { placeholderResorts } from '@/lib/data';
-import type { AIRecommendation } from '@/lib/types';
+import type { AIRecommendation, Resort } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import { Loader2 } from 'lucide-react';
 
+// Helper function to slugify resort names for IDs
+const slugify = (text: string) => text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+
+// Helper function to map AI price category to Resort priceRange
+const mapPriceCategoryToPriceRange = (priceCategory: AIRecommendation['priceCategory']): Resort['priceRange'] => {
+  switch (priceCategory) {
+    case "Luxury":
+      return "Luxury";
+    case "Mid-range":
+      return "Mid-range";
+    case "Budget":
+    case "Budget-friendly":
+      return "Budget";
+    default:
+      return "Mid-range"; // Fallback
+  }
+};
+
 export default function HomePage() {
-  const [recommendations, setRecommendations] = useState<AIRecommendation[] | null>(null);
+  const [aiRecommendations, setAiRecommendations] = useState<AIRecommendation[] | null>(null);
+  const [transformedAiResorts, setTransformedAiResorts] = useState<Resort[] | null>(null);
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
+
+  useEffect(() => {
+    if (aiRecommendations) {
+      const transformed = aiRecommendations.map((rec, index): Resort => ({
+        id: `ai-rec-${index}-${slugify(rec.resortName)}`,
+        name: rec.resortName,
+        description: rec.description,
+        images: [`https://placehold.co/800x600.png?text=${encodeURIComponent(rec.resortName)}`], // Placeholder, ResortCard will use hint
+        amenities: rec.keyAmenities,
+        priceRange: mapPriceCategoryToPriceRange(rec.priceCategory),
+        suitableFor: rec.suitableForSuggestions,
+        location: rec.location,
+        rating: rec.estimatedRating,
+        virtualTourUrl: '#', // AI doesn't provide this
+        defaultImageAiHint: rec.imagePromptHint,
+      }));
+      setTransformedAiResorts(transformed);
+    } else {
+      setTransformedAiResorts(null);
+    }
+  }, [aiRecommendations]);
 
   return (
     <div className="space-y-12">
       <section id="ai-recommender" className="py-8">
         <RecommendationForm 
-          onRecommendations={setRecommendations} 
+          onRecommendations={setAiRecommendations} // Sets AIRecommendation[]
           setLoading={setIsLoadingRecommendations} 
         />
       </section>
@@ -30,18 +71,18 @@ export default function HomePage() {
         </div>
       )}
 
-      {recommendations && recommendations.length > 0 && (
+      {transformedAiResorts && transformedAiResorts.length > 0 && (
         <section id="ai-results">
-          <RecommendationResults recommendations={recommendations} />
+          {/* RecommendationResults now expects Resort[] */}
+          <RecommendationResults resorts={transformedAiResorts} />
         </section>
       )}
       
-      {recommendations && recommendations.length === 0 && !isLoadingRecommendations && (
+      {aiRecommendations && aiRecommendations.length === 0 && !isLoadingRecommendations && (
          <div className="text-center py-10">
             <p className="text-xl text-muted-foreground">No specific AI recommendations found. Try adjusting your criteria.</p>
          </div>
       )}
-
 
       <Separator className="my-12" />
 

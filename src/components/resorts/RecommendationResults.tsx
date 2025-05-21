@@ -1,13 +1,14 @@
-import type { AIRecommendation } from "@/lib/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+import type { Resort } from "@/lib/types";
+import ResortList from "./ResortList"; // Import ResortList
 import { ThumbsUp } from "lucide-react";
 
 type RecommendationResultsProps = {
-  recommendations: AIRecommendation[];
+  resorts: Resort[]; // Changed from AIRecommendation[] to Resort[]
 };
 
-export default function RecommendationResults({ recommendations }: RecommendationResultsProps) {
-  if (recommendations.length === 0) {
+export default function RecommendationResults({ resorts }: RecommendationResultsProps) {
+  if (!resorts || resorts.length === 0) {
     return null; 
   }
 
@@ -17,18 +18,10 @@ export default function RecommendationResults({ recommendations }: Recommendatio
         <ThumbsUp className="inline-block mr-2 mb-1" size={30}/>
         Our Top Picks For You!
       </h2>
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {recommendations.map((rec, index) => (
-          <Card key={index} className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <CardHeader>
-              <CardTitle className="text-xl text-primary">{rec.resortName}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>{rec.description}</CardDescription>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* Use ResortList to display the AI-recommended resorts */}
+      <ResortList resorts={resorts} title="" /> 
+      {/* Pass empty title or no title prop if ResortList handles it, 
+          or remove title from ResortList if this h2 is sufficient */}
     </div>
   );
 }
