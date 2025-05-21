@@ -31,7 +31,7 @@ const AIRecommendationSchema = z.object({
 });
 
 const GenerateResortRecommendationsOutputSchema = z.object({
-  recommendations: z.array(AIRecommendationSchema).describe('A list of at least 4 personalized resort recommendations with detailed information.'),
+  recommendations: z.array(AIRecommendationSchema).describe('A list of exactly 4 personalized resort recommendations with detailed information.'),
 });
 export type GenerateResortRecommendationsOutput = z.infer<typeof GenerateResortRecommendationsOutputSchema>;
 
@@ -46,7 +46,7 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateResortRecommendationsOutputSchema},
   prompt: `You are an expert travel agent specializing in resort recommendations.
 
-  Based on the user's occasion, preferences, and budget, provide a list of at least 4, ideally 4-5, personalized resort recommendations.
+  Based on the user's occasion, preferences, and budget, provide a list of exactly 4 personalized resort recommendations.
 
   User Input:
   Occasion: {{{occasion}}}
@@ -63,7 +63,7 @@ const prompt = ai.definePrompt({
   - suitableForSuggestions: An array of 2-3 suitable occasions or traveler types.
   - imagePromptHint: A short (2-5 words) descriptive hint for generating an image of the resort (e.g., "tropical beach sunset", "cozy mountain cabin").
 
-  Ensure your output is a valid JSON object with a "recommendations" array, where each element is an object matching the structure described above.
+  Ensure your output is a valid JSON object with a "recommendations" array, where each element is an object matching the structure described above and the array contains exactly 4 recommendations.
   `,
 });
 
@@ -76,14 +76,14 @@ const generateResortRecommendationsFlow = ai.defineFlow(
   async input => {
     const {output} = await prompt(input);
     if (!output?.recommendations) {
-      // Handle cases where the AI might return an empty or malformed response
-      // You could return an empty array or throw a more specific error
       console.warn("AI did not return recommendations or output was malformed.");
       return { recommendations: [] };
     }
-    // Ensure at least a minimum number of recommendations if possible, or handle if AI still returns less.
-    // For this request, we are relying on the prompt to guide the AI to produce at least 4.
-    // Further client-side logic could be added if strict enforcement is needed and AI fails to comply.
+    // While the prompt requests exactly 4, we can add a safeguard here if needed.
+    // For now, relying on the prompt instruction.
+    // if (output.recommendations.length > 4) {
+    //   output.recommendations = output.recommendations.slice(0, 4);
+    // }
     return output;
   }
 );
