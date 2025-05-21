@@ -1,6 +1,8 @@
+
 'use server';
 
 import { generateResortRecommendations, type GenerateResortRecommendationsInput, type GenerateResortRecommendationsOutput } from '@/ai/flows/generate-resort-recommendations';
+import { generateResortImage, type GenerateResortImageInput, type GenerateResortImageOutput } from '@/ai/flows/generate-resort-image-flow';
 import { z } from 'zod';
 
 const RecommendationRequestSchema = z.object({
@@ -44,5 +46,20 @@ export async function handleGenerateRecommendations(
   } catch (error) {
     console.error("Error generating recommendations:", error);
     return { success: false, error: "Failed to generate recommendations. Please try again later." };
+  }
+}
+
+
+export async function generateResortImageAction(input: GenerateResortImageInput): Promise<GenerateResortImageOutput> {
+  try {
+    const result = await generateResortImage(input);
+    return result;
+  } catch (error) {
+    console.error("Error in generateResortImageAction:", error);
+    // Re-throw the error so the client can handle it, or return a structured error.
+    // For simplicity, re-throwing allows the client's catch block to activate.
+    // Consider returning a specific error structure if more granular client handling is needed.
+    // e.g., return { imageDataUri: '', error: 'Image generation failed' }
+    throw new Error(`Image generation failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
